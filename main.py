@@ -1,3 +1,5 @@
+# See https://developers.google.com/image-search/v1/jsondevguide for google's search API
+
 import nltk.tag as tagger
 import nltk
 import urllib2
@@ -49,11 +51,19 @@ class Term:
     text = ""
     partOfSpeech = ""
     weight = 0.0
+    urls = []
 
     def __init__(self, text = "", partOfSpeech = "", weight = 0.0):
         self.text = text
         self.partOfSpeech = partOfSpeech
         self.weight = weight
+        self.urls = []
+
+    def addUrl(self, url):
+        self.urls.append(url)
+
+    def addUrls(self, urls):
+        self.urls = urls
 
 
 def tokenizeText(inputText):
@@ -74,7 +84,7 @@ def getPublicIp():
 
 def getImageUrlForSearchQuery(searchTerm):
     userIp = getPublicIp()
-    url = ('https://ajax.googleapis.com/ajax/services/search/images?' + 'v=1.0&q=' + searchTerm.text + '=&userip=' + userIp)
+    url = ('https://ajax.googleapis.com/ajax/services/search/images?' + 'v=1.0&q=' + searchTerm.text + '=&userip=' + userIp + '=&as_filetype=jpg')
     return url
 
 
@@ -116,7 +126,8 @@ def main():
             term = Term(termText, termPartOfSpeech, termWeight)
             searchTerms.append(term)
 
-    searchTermImageUrls = []
+    searchTermImageUrlSets = []
+
     # Do a search on Google for each of our search terms, and get the first four images.
     for searchTerm in searchTerms:
 
@@ -124,16 +135,15 @@ def main():
         response = makeRequest(url)
         imageUrls = getImageURLS(response)
 
-        searchTermImageUrls.append(imageUrls)
+        searchTerm.addUrls(imageUrls)   # I may not end up needing to do this.
 
-    for imageUrlSet in range(len(searchTermImageUrls)):
-        currentSet = searchTermImageUrls[imageUrlSet]
+        currentImageDataSet = []
+        for imageUrl in imageUrls:
 
-        for imageUrl in currentSet:
-            print imageUrl
             try:
-                image = imageHandler.imread(imageUrl)
-                imageHandler.imshow(image)
+                imageData = imageHandler.imread(imageUrl)
+                print "Successfully loaded image at URL " + imageUrl
+                currentImageDataSet.append(imageData)
 
             except IOError:
                 print "Unable to load image at URL " + imageUrl
