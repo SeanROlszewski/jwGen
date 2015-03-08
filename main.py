@@ -2,6 +2,7 @@ import nltk.tag as tagger
 import nltk
 import urllib2
 import simplejson
+from skimage import io as imageHandler
 
 # The tagger used in this iteration is from the Penn Treebank Project. See https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html for the list and explanation
 partsOfSpeech = ['CC',
@@ -43,6 +44,7 @@ partsOfSpeech = ['CC',
 
 partsOfSpeech = {'CC': 0.3, 'CD': 0.1, 'VB': 0.4, 'NN': 0.2}
 
+
 class Term:
     text = ""
     partOfSpeech = ""
@@ -53,17 +55,46 @@ class Term:
         self.partOfSpeech = partOfSpeech
         self.weight = weight
 
+
 def tokenizeText(inputText):
     inputText = inputText.translate(None, ',./<>?\'":;[{}]\\|+=-_)(*&^%$#@!~`') #Perhaps find a better way to include all non-alphabetical characters.
     inputText = inputText.split()
     return inputText
 
+
 def parsePartOfSpeechToWeight(partOfSpeech):
     weight = partsOfSpeech[partOfSpeech]
     return weight
 
+
 def getPublicIp():
-    return '71.232.42.68'
+    results = makeRequest('http://httpbin.org/ip')
+    return results['origin']
+
+
+def getImageUrlForSearchQuery(searchTerm):
+    userIp = getPublicIp()
+    url = ('https://ajax.googleapis.com/ajax/services/search/images?' + 'v=1.0&q=' + searchTerm.text + '=&userip=' + userIp)
+    return url
+
+
+def getImageURLS(jsonResponse):
+
+    imageUrls = []
+    responseData = jsonResponse['responseData']
+    imageResults = responseData['results']
+
+    for i in range(len(imageResults)):
+        currentImageResult = imageResults[i]
+        imageUrls.append(currentImageResult['url'])
+
+    return imageUrls
+
+# Returns a JSON payload of the request as a string.
+def makeRequest(url, referer = 'http://www.whiteroom.audio'):
+    request = urllib2.Request(url, None, {'Referer': referer})
+    remoteResponse = urllib2.urlopen(request)
+    return simplejson.load(remoteResponse)
 
 
 def main():
@@ -85,29 +116,27 @@ def main():
             term = Term(termText, termPartOfSpeech, termWeight)
             searchTerms.append(term)
 
+    searchTermImageUrls = []
+    # Do a search on Google for each of our search terms, and get the first four images.
     for searchTerm in searchTerms:
-        userIp = getPublicIp()
 
-        url = ('https://ajax.googleapis.com/ajax/services/search/images?' +
-       'v=1.0&q=' + searchTerm.text + '=&userip=' + userIp)
+        url = getImageUrlForSearchQuery(searchTerm)
+        response = makeRequest(url)
+        imageUrls = getImageURLS(response)
 
-        request = urllib2.Request(url, None, {'Referer': 'http://www.whiteroom.audio'})
-        response = urllib2.urlopen(request)
+        searchTermImageUrls.append(imageUrls)
 
-        print "Image Results:"
+    for imageUrlSet in range(len(searchTermImageUrls)):
+        currentSet = searchTermImageUrls[imageUrlSet]
 
-        results = simplejson.load(response)
-        responseData = results['responseData']
-        imageResults = responseData['results']
-        # print imageResults
+        for imageUrl in currentSet:
+            print imageUrl
+            try:
+                image = imageHandler.imread(imageUrl)
+                imageHandler.imshow(image)
 
-        for i in range(len(imageResults)):
-            currentImageResult = imageResults[i]
-            print currentImageResult['url']
-
-        print '\n'
-
-
+            except IOError:
+                print "Unable to load image at URL " + imageUrl
 
 main()
 
