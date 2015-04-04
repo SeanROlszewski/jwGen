@@ -4,8 +4,9 @@ import nltk.tag as tagger
 import nltk
 import urllib2
 import simplejson
-from skimage import io, color
 import numpy
+
+from skimage import io, color, feature, transform
 
 # The tagger used in this iteration is from the Penn Treebank Project. See https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html for the list and explanation
 # partsOfSpeech = ['CC',
@@ -75,6 +76,9 @@ class Shape:
         self.height = height
         self.n = n
 
+    def getAsTuple(self):
+        return (self.width, self.height)
+
 '''
 
 
@@ -84,13 +88,22 @@ main()
 '''
 
 def main():
-    searchTerms = parseInputIntoSearchTerms('guitar')
-    for searchTerm in searchTerms:
+    searchTerms = parseInputIntoSearchTerms('red dog got jumped last night d00d')
 
-        # Do a search on Google for each of our search terms, and get the first four images.
-        handleSearchTerm(searchTerm)
+    if len(searchTerms) == 0:
+
+        print "Unable to generate image.\n" + generateErrorMessage("The filter used to remove words from the sentence for the query is too restrictive - no words are left after the filter!")
+
+    else:
+
+        for searchTerm in searchTerms:
+
+            # Do a search on Google for each of our search terms, and get the first four images.
+            handleSearchTerm(searchTerm)
 
 
+def generateErrorMessage(_errorMessageText):
+    return "Error: " + _errorMessageText
 
 
 '''
@@ -124,10 +137,10 @@ def parseInputIntoSearchTerms(_inputString):
     return searchTerms
 
 
-def tokenizeText(inputText):
-    inputText = inputText.translate(None, ',./<>?\'":;[{}]\\|+=-_)(*&^%$#@!~`') #Perhaps find a better way to include all non-alphabetical characters.
-    inputText = inputText.split()
-    return inputText
+def tokenizeText(_inputText):
+    _inputText = _inputText.translate(None, ',./<>?\'":;[{}]\\|+=-_)(*&^%$#@!~`') #Perhaps find a better way to include all non-alphabetical characters.
+    _inputText = _inputText.split()
+    return _inputText
 
 
 
@@ -152,10 +165,15 @@ def handleSearchTerm(_searchTerm):
 
     _searchTerm.addUrls(imageUrls)   # I may not end up needing to do this.
 
+    print "-----------------"
+    print "Working with term '" + _searchTerm.text + "'"
+    print "-----------------"
+
     currentImageDataSet = []
     for imageUrl in imageUrls:
 
         try:
+
             grayImageData = io.imread(imageUrl, as_grey=True)
             currentImageDataSet.append(grayImageData)
             print "Successfully loaded image at URL " + imageUrl
@@ -171,8 +189,8 @@ def handleSearchTerm(_searchTerm):
 def generateImageForDataSet(_imageDataSet):
 
     # Get the smallest image width and height so we don't have to scale the image.
-    finalImageShape = generateImageShapeFromDataSet(_imageDataSet)
-    finalImage = generateImageFromDataSet(_imageDataSet, finalImageShape)
+    # finalImageShape = generateImageShapeFromDataSet(_imageDataSet)
+    finalImage = generateImageFromDataSet(_imageDataSet, Shape(1000, 1000, 2))
 
     return finalImage
 
@@ -205,29 +223,49 @@ def generateImageShapeFromDataSet(_imageDataSet):
         elif currentImageHeight < imageShape.height:
             imageShape.height = currentImageHeight
 
-    print "Width: " + str(imageShape.width)
-    print "Height: " + str(imageShape.height)
+    print "Generated Image's Width: " + str(imageShape.width)
+    print "Generated Image's Height: " + str(imageShape.height)
 
     return imageShape
 
 def generateImageFromDataSet(_imageDataSet, _imageShape):
-        # Create a 2d array to store the data in.
-    finalImage = numpy.ndarray(shape=(_imageShape.width, _imageShape.height), dtype=float)
+
+    print "Requested Image's Width: " + str(_imageShape.width)
+    print "Requested Image's Height: " + str(_imageShape.height)
+
+    # Create a 2d array to store the data in.
+    finalImage = numpy.ndarray( shape = _imageShape.getAsTuple(),
+                                dtype = float)
 
     for imageData in _imageDataSet:
+
+        workingData = []
+
+        if imageData.shape[0] != _imageShape.width or imageData.shape[1] != _imageShape.height:
+
+            imageDataDimensions = _imageShape.getAsTuple()
+            print "Resizing retrieved image to size " + str(imageDataDimensions)
+            workingData = transform.resize(imageData, (1000, 1000), order=1, mode='constant', cval=0, clip=True, preserve_range=False)
+            # workingData =
+
+
+        print "Working data size: " + str(workingData.shape)
 
         print "Summing image data"
         for j in range(_imageShape.height):
             for i in range(_imageShape.width):
-                finalImage[i][j] += imageData[i][j]
+                finalImage[i][j] += workingData[i][j]
 
     print "Averaging image data"
     for j in range(_imageShape.height):
         for i in range(_imageShape.width):
             finalImage[i][j] /= len(_imageDataSet)
 
+    print "Generated Image's Width: " + str(finalImage.shape[0])
+    print "Generated Image's Height: " + str(finalImage.shape[1])
 
     finalImage = color.gray2rgb(finalImage)
+
     return finalImage
 
 
@@ -240,18 +278,24 @@ Internet/URL/IP Functions
 '''
 
 def getImageUrlForSearchQuery(_searchTerm):
+
     userIp = getPublicIp()
     url = ('https://ajax.googleapis.com/ajax/services/search/images?' + 'v=1.0&q=' + _searchTerm.text + '&userip=' + userIp + '&as_filetype=jpg&imgsz=xxlarge')
+
     return url
 
 def getPublicIp():
+
     results = makeRequest('http://httpbin.org/ip')
+
     return results['origin']
 
 # Returns a JSON payload of the request as a string.
 def makeRequest(_url, _referer = 'http://www.whiteroom.audio'):
+
     request = urllib2.Request(_url, None, {'Referer': _referer})
     remoteResponse = urllib2.urlopen(request)
+
     return simplejson.load(remoteResponse)
 
 def getImageURLS(_jsonReponse):
