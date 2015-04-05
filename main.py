@@ -9,44 +9,6 @@ import numpy
 from skimage import io, color, feature, transform
 import skimage
 
-# The tagger used in this iteration is from the Penn Treebank Project. See https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html for the list and explanation
-# partsOfSpeech = ['CC',
-#                  'CD',
-#                  'DT',
-#                  'EX',
-#                  'FW',
-#                  'IN',
-#                  'JJ',
-#                  'JJR',
-#                  'JJS',
-#                  'LS',
-#                  'MD',
-#                  'NN',
-#                  'NNS',
-#                  'NNP',
-#                  'NNPS',
-#                  'PDT',
-#                  'POS',
-#                  'PRP',
-#                  'PRP$',
-#                  'RB',
-#                  'RBR',
-#                  'RBS',
-#                  'RP',
-#                  'SYM',
-#                  'TO',
-#                  'UH',
-#                  'VB',
-#                  'VBD',
-#                  'VBG',
-#                  'VBN',
-#                  'VBP',
-#                  'VBZ',
-#                  'WDT',
-#                  'WP',
-#                  'WP$',
-#                  'WRB']
-
 partsOfSpeech = {'CC': 0.3, 'CD': 0.1, 'VB': 0.4, 'NN': 0.2}
 
 class Term:
@@ -54,12 +16,14 @@ class Term:
     partOfSpeech = ""
     weight = 0.0
     urls = []
+    imageData = None
 
-    def __init__(self, text = "", partOfSpeech = "", weight = 0.0):
+    def __init__(self, text = "", partOfSpeech = "", weight = 0.0, imageData = None):
         self.text = text
         self.partOfSpeech = partOfSpeech
         self.weight = weight
         self.urls = []
+        self.imageData = imageData
 
     def addUrl(self, url):
         self.urls.append(url)
@@ -89,22 +53,20 @@ main()
 '''
 
 def main():
-    searchTerms = parseInputIntoSearchTerms('hemp')
+    searchTerms = parseInputIntoSearchTerms('helpless, the boy cried himself to sleep')
 
     if len(searchTerms) == 0:
-
         print "Unable to generate image.\n" + generateErrorMessage("The filter used to remove words from the sentence for the query is too restrictive - no words are left after the filter!")
 
     else:
-
+        print "Looking up images for search terms: " + str(map(lambda x: x.text, searchTerms))
+        # Do a search on Google for each of our search terms, and get the first four images.
         for searchTerm in searchTerms:
-
-            # Do a search on Google for each of our search terms, and get the first four images.
             handleSearchTerm(searchTerm)
 
 
 def generateErrorMessage(_errorMessageText):
-    return "Error: " + _errorMessageText
+    return "Error: " + str(_errorMessageText)
 
 
 '''
@@ -162,9 +124,8 @@ def toGrayScale(_imageData):
 
     return color.rgb2gray(_imageData)
 
-
-
 def handleSearchTerm(_searchTerm):
+
     url = getImageUrlForSearchQuery(_searchTerm)
     response = makeRequest(url)
     imageUrls = getImageURLS(response)
@@ -175,15 +136,26 @@ def handleSearchTerm(_searchTerm):
     print "Working with term '" + _searchTerm.text + "'"
     print "-----------------"
 
-    currentImageDataSet = io.ImageCollection(imageUrls, conserve_memory=False, loadfunc=toGrayScale)
-    finalImage = generateImageFromDataSet(currentImageDataSet, Shape(1000, 1000, 3))
+    try:
+        currentImageDataSet = io.ImageCollection(imageUrls, conserve_memory=True, loadfunc=toGrayScale)
+        finalImage = generateImageFromDataSet(currentImageDataSet, Shape(768, 1024, 3))
 
-    io.imshow(finalImage)
-    io.show()
+        io.imshow(finalImage)
+        io.show()
+
+    except IOError, ioError:
+        print "**** Encountered IOError ****\n" + str(ioError)
+    except urllib2.HTTPError, httpError:
+        print "**** Encountered HTTPError ****\n" + str(httpError)
+    except RuntimeError, runtimeError:
+        print "**** Runtime Error ****\n" + str(runtimeError)
+
+    print "\n"
+
 
 def generateImageFromDataSet(_imageDataSet, _imageShape):
 
-    print "Requested Image's Size: " + str(_imageShape.asTuple())
+    print "Specified Size: " + str(_imageShape.asTuple())
 
     # Create a 2d array to store the data in.
     finalImage = numpy.ndarray( shape = _imageShape.asTuple(),
@@ -193,20 +165,15 @@ def generateImageFromDataSet(_imageDataSet, _imageShape):
 
         workingData = []
 
-        if imageData.shape[0] != _imageShape.width or imageData.shape[1] != _imageShape.height:
-
-            imageDataDimensions = _imageShape.asTuple()
-            print "Resizing retrieved image from " + str(imageData.shape) + " to size " + str(imageDataDimensions)
-            workingData = transform.resize(imageData, imageDataDimensions, order=1, mode='constant', cval=0, clip=True, preserve_range=False)
-
-        print "Working data size: " + str(workingData.shape)
-
+        imageDataDimensions = _imageShape.asTuple()
+        print "Resizing retrieved image from " + str(imageData.shape) + " to size " + str(imageDataDimensions)
+        workingData = transform.resize(imageData, imageDataDimensions, order=1, mode='constant', cval=0, clip=True, preserve_range=False)
         # workingData =
 
         print "Summing image data"
         for j in range(_imageShape.height):
             for i in range(_imageShape.width):
-                finalImage[i][j] += workingData[i][j]
+                finalImage[i][j] += (workingData[i][j] * 0.5)
 
     print "Averaging image data"
     for j in range(_imageShape.height):
