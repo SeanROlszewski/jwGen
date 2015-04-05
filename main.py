@@ -89,7 +89,7 @@ main()
 '''
 
 def main():
-    searchTerms = parseInputIntoSearchTerms('I jumped over january with a bobsled while smoking hemp in my car')
+    searchTerms = parseInputIntoSearchTerms('hemp')
 
     if len(searchTerms) == 0:
 
