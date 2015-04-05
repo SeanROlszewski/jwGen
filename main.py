@@ -7,6 +7,7 @@ import simplejson
 import numpy
 
 from skimage import io, color, feature, transform
+import skimage
 
 # The tagger used in this iteration is from the Penn Treebank Project. See https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html for the list and explanation
 # partsOfSpeech = ['CC',
@@ -76,8 +77,8 @@ class Shape:
         self.height = height
         self.n = n
 
-    def getAsTuple(self):
-        return (self.width, self.height)
+    def asTuple(self):
+        return (self.width, self.height, self.n)
 
 '''
 
@@ -88,7 +89,7 @@ main()
 '''
 
 def main():
-    searchTerms = parseInputIntoSearchTerms('red dog got jumped last night d00d')
+    searchTerms = parseInputIntoSearchTerms('I jumped over january with a bobsled while smoking hemp in my car')
 
     if len(searchTerms) == 0:
 
@@ -157,6 +158,11 @@ Image Generation Functions
 
 '''
 
+def toGrayScale(_imageData):
+
+    return color.rgb2gray(_imageData)
+
+
 
 def handleSearchTerm(_searchTerm):
     url = getImageUrlForSearchQuery(_searchTerm)
@@ -169,72 +175,18 @@ def handleSearchTerm(_searchTerm):
     print "Working with term '" + _searchTerm.text + "'"
     print "-----------------"
 
-    currentImageDataSet = []
-    for imageUrl in imageUrls:
+    currentImageDataSet = io.ImageCollection(imageUrls, conserve_memory=False, loadfunc=toGrayScale)
+    finalImage = generateImageFromDataSet(currentImageDataSet, Shape(1000, 1000, 3))
 
-        try:
-
-            grayImageData = io.imread(imageUrl, as_grey=True)
-            currentImageDataSet.append(grayImageData)
-            print "Successfully loaded image at URL " + imageUrl
-
-
-        except IOError:
-            print "Unable to load image at URL " + imageUrl
-
-    finalImage = generateImageForDataSet(currentImageDataSet)
     io.imshow(finalImage)
     io.show()
 
-def generateImageForDataSet(_imageDataSet):
-
-    # Get the smallest image width and height so we don't have to scale the image.
-    # finalImageShape = generateImageShapeFromDataSet(_imageDataSet)
-    finalImage = generateImageFromDataSet(_imageDataSet, Shape(1000, 1000, 2))
-
-    return finalImage
-
-def generateImageShapeFromDataSet(_imageDataSet):
-
-    imageShape = Shape()
-    for imageData in _imageDataSet:
-
-
-        currentImageWidth = imageData.shape[0]
-        currentImageHeight = imageData.shape[1]
-        currentImageDimensionCount = imageData.ndim
-
-        print "Image shape: " + str(imageData.shape)
-        print "Number of dimensions: " + str(currentImageDimensionCount)
-
-        # Only change our image shape if the current image shape or dimensions are smaller than any of the other image shapes or dimensions we've gone through.
-        if imageShape.n == 0:
-            imageShape.n = imageData.ndim
-        elif currentImageDimensionCount < imageShape.n:
-            imageShape.n = imageData.ndim
-
-        if imageShape.width == 0:
-            imageShape.width = currentImageWidth
-        elif currentImageWidth < imageShape.width:
-            imageShape.width = currentImageWidth
-
-        if imageShape.height == 0:
-            imageShape.height = currentImageHeight
-        elif currentImageHeight < imageShape.height:
-            imageShape.height = currentImageHeight
-
-    print "Generated Image's Width: " + str(imageShape.width)
-    print "Generated Image's Height: " + str(imageShape.height)
-
-    return imageShape
-
 def generateImageFromDataSet(_imageDataSet, _imageShape):
 
-    print "Requested Image's Width: " + str(_imageShape.width)
-    print "Requested Image's Height: " + str(_imageShape.height)
+    print "Requested Image's Size: " + str(_imageShape.asTuple())
 
     # Create a 2d array to store the data in.
-    finalImage = numpy.ndarray( shape = _imageShape.getAsTuple(),
+    finalImage = numpy.ndarray( shape = _imageShape.asTuple(),
                                 dtype = float)
 
     for imageData in _imageDataSet:
@@ -243,13 +195,13 @@ def generateImageFromDataSet(_imageDataSet, _imageShape):
 
         if imageData.shape[0] != _imageShape.width or imageData.shape[1] != _imageShape.height:
 
-            imageDataDimensions = _imageShape.getAsTuple()
-            print "Resizing retrieved image to size " + str(imageDataDimensions)
-            workingData = transform.resize(imageData, (1000, 1000), order=1, mode='constant', cval=0, clip=True, preserve_range=False)
-            # workingData =
-
+            imageDataDimensions = _imageShape.asTuple()
+            print "Resizing retrieved image from " + str(imageData.shape) + " to size " + str(imageDataDimensions)
+            workingData = transform.resize(imageData, imageDataDimensions, order=1, mode='constant', cval=0, clip=True, preserve_range=False)
 
         print "Working data size: " + str(workingData.shape)
+
+        # workingData =
 
         print "Summing image data"
         for j in range(_imageShape.height):
@@ -261,8 +213,8 @@ def generateImageFromDataSet(_imageDataSet, _imageShape):
         for i in range(_imageShape.width):
             finalImage[i][j] /= len(_imageDataSet)
 
-    print "Generated Image's Width: " + str(finalImage.shape[0])
-    print "Generated Image's Height: " + str(finalImage.shape[1])
+    print "Generated Image's size: " + str(finalImage.shape)
+
 
     finalImage = color.gray2rgb(finalImage)
 
