@@ -5,11 +5,48 @@ import nltk
 import urllib2
 import simplejson
 import numpy
+import pdb
 
 from skimage import io, color, feature, transform
 import skimage
 
-partsOfSpeech = {'CC': 0.3, 'CD': 0.1, 'VB': 0.4, 'NN': 0.2}
+# partsOfSpeech = {'CC': 0.3, 'CD': 0.1, 'VB': 0.4, 'NN': 0.2}
+partsOfSpeech = {'CC': 0,
+                 'CD': 0,
+                 'DT': 0,
+                 'EX': 0,
+                 'FW': 0,
+                 'IN': 0,
+                 'JJ': 0,
+                 'JJR': 0,
+                 'JJS': 0,
+                 'LS': 0,
+                 'MD': 0,
+                 'NN': 0,
+                 'NNS': 0,
+                 'NNP': 0,
+                 'NNPS': 0,
+                 'PDT': 0,
+                 'POS': 0,
+                 'PRP': 0,
+                 'PRP$': 0,
+                 'RB': 0,
+                 'RBR': 0,
+                 'RBS': 0,
+                 'RP': 0,
+                 'SYM': 0,
+                 'TO': 0,
+                 'UH': 0,
+                 'VB': 0,
+                 'VBD': 0,
+                 'VBG': 0,
+                 'VBN': 0,
+                 'VBP': 0,
+                 'VBZ': 0,
+                 'WDT': 0,
+                 'WP': 0,
+                 'WP$': 0,
+                 'WRB': 0}
 
 class Term:
     text = ""
@@ -30,6 +67,11 @@ class Term:
 
     def addUrls(self, urls):
         self.urls = urls
+
+    def addImageData(self, _imageData):
+        if (_imageData != None):
+            print "Adding image data to Term object"
+            self.imageData = _imageData
 
 class Shape:
     width = 0
@@ -53,16 +95,59 @@ main()
 '''
 
 def main():
-    searchTerms = parseInputIntoSearchTerms('helpless, the boy cried himself to sleep')
+
+    searchTerms = parseInputIntoSearchTerms('google sublime')
 
     if len(searchTerms) == 0:
         print "Unable to generate image.\n" + generateErrorMessage("The filter used to remove words from the sentence for the query is too restrictive - no words are left after the filter!")
 
     else:
         print "Looking up images for search terms: " + str(map(lambda x: x.text, searchTerms))
+
+        imageShape = Shape(1000, 1000, 3)
+
+        finalImage = generateFloatImageArray(imageShape.asTuple())
+
         # Do a search on Google for each of our search terms, and get the first four images.
         for searchTerm in searchTerms:
-            handleSearchTerm(searchTerm)
+
+            try:
+
+                handleSearchTerm(searchTerm)
+
+                pdb.set_trace()
+
+                print "Summing image data"
+                for j in range(imageShape.height):
+                    for i in range(imageShape.width):
+                        finalImage[i][j] += searchTerm.imageData[i][j]
+
+            except TypeError, typeError:
+
+                print "**** Type Error ****\n" + str(typeError)
+
+            except IOError, ioError:
+
+                print "**** Encountered IOError ****\n" + str(ioError)
+
+            except urllib2.HTTPError, httpError:
+
+                print "**** Encountered HTTPError ****\n" + str(httpError)
+
+            except RuntimeError, runtimeError:
+
+                print "**** Runtime Error ****\n" + str(runtimeError)
+
+        print "Averaging image data"
+        for j in range(imageShape.height):
+            for i in range(imageShape.width):
+                finalImage[i][j] /= len(searchTerms)
+
+
+        io.imshow(finalImage)
+        io.show()
+
+
 
 
 def generateErrorMessage(_errorMessageText):
@@ -136,30 +221,27 @@ def handleSearchTerm(_searchTerm):
     print "Working with term '" + _searchTerm.text + "'"
     print "-----------------"
 
-    try:
-        currentImageDataSet = io.ImageCollection(imageUrls, conserve_memory=True, loadfunc=toGrayScale)
-        finalImage = generateImageFromDataSet(currentImageDataSet, Shape(768, 1024, 3))
+    currentImageDataSet = io.ImageCollection(imageUrls, conserve_memory=True, loadfunc=toGrayScale)
+    finalImage = generateImageFromDataSet(currentImageDataSet, Shape(1000, 1000, 3))
+    _searchTerm.addImageData(finalImage)
 
-        io.imshow(finalImage)
-        io.show()
-
-    except IOError, ioError:
-        print "**** Encountered IOError ****\n" + str(ioError)
-    except urllib2.HTTPError, httpError:
-        print "**** Encountered HTTPError ****\n" + str(httpError)
-    except RuntimeError, runtimeError:
-        print "**** Runtime Error ****\n" + str(runtimeError)
+    # io.imshow(finalImage)
+    # io.show()
 
     print "\n"
 
+def generateFloatImageArray(_arrayDimensions):
+    imageArray = numpy.ndarray( shape = _arrayDimensions,
+                                dtype = float)
+    imageArray.fill(0.0)
+    return imageArray
 
 def generateImageFromDataSet(_imageDataSet, _imageShape):
 
     print "Specified Size: " + str(_imageShape.asTuple())
 
     # Create a 2d array to store the data in.
-    finalImage = numpy.ndarray( shape = _imageShape.asTuple(),
-                                dtype = float)
+    finalImage = generateFloatImageArray(_imageShape.asTuple())
 
     for imageData in _imageDataSet:
 
