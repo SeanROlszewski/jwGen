@@ -115,7 +115,7 @@ def main():
 
                 handleSearchTerm(searchTerm)
 
-                pdb.set_trace()
+                # pdb.set_trace()
 
                 print "Summing image data"
                 for j in range(imageShape.height):
