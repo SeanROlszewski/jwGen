@@ -1,11 +1,11 @@
 # See https://developers.google.com/image-search/v1/jsondevguide for google's search API
 
-import nltk.tag as tagger
 import nltk
 import urllib2
 import simplejson
 import numpy
-import pdb
+# import pdb
+# import stringUtils
 
 from skimage import io, color, feature, transform
 import skimage
@@ -55,33 +55,37 @@ class Term:
     urls = []
     imageData = None
 
-    def __init__(self, text = "", partOfSpeech = "", weight = 0.0, imageData = None):
-        self.text = text
-        self.partOfSpeech = partOfSpeech
-        self.weight = weight
-        self.urls = []
-        self.imageData = imageData
+    def __init__(self, _text="", _partOfSpeech="", _weight=0.0, _imageData=None):
 
-    def addUrl(self, url):
-        self.urls.append(url)
+        self.text = _text
+        self.partOfSpeech = _partOfSpeech
+        self.weight = _weight
+        self.urls = []
+        self.imageData = _imageData
+
+    def addUrl(self, _url):
+        self.urls.append(_url)
 
     def addUrls(self, urls):
         self.urls = urls
 
     def addImageData(self, _imageData):
+
         if (_imageData != None):
+
             print "Adding image data to Term object"
             self.imageData = _imageData
+
 
 class Shape:
     width = 0
     height = 0
     n = 0
 
-    def __init__(self, width = 0, height = 0, n = 0):
-        self.width = width
-        self.height = height
-        self.n = n
+    def __init__(self, _width=0, _height=0, _n=0):
+        self.width = _width
+        self.height = _height
+        self.n = _n
 
     def asTuple(self):
         return (self.width, self.height, self.n)
@@ -96,16 +100,17 @@ main()
 
 def main():
 
-    searchTerms = parseInputIntoSearchTerms('google sublime')
+    searchTerms = generateSearchTerms('google platypus donald america')
 
     if len(searchTerms) == 0:
-        print "Unable to generate image.\n" + generateErrorMessage("The filter used to remove words from the sentence for the query is too restrictive - no words are left after the filter!")
+
+        print "Unable to generate image.\n" + "Error: The filter used to remove words from the sentence for the query is too restrictive - no words are left after the filter!"
 
     else:
+
         print "Looking up images for search terms: " + str(map(lambda x: x.text, searchTerms))
 
         imageShape = Shape(1000, 1000, 3)
-
         finalImage = generateFloatImageArray(imageShape.asTuple())
 
         # Do a search on Google for each of our search terms, and get the first four images.
@@ -117,7 +122,7 @@ def main():
 
                 # pdb.set_trace()
 
-                print "Summing image data"
+                print "Adding image data to final image"
                 for j in range(imageShape.height):
                     for i in range(imageShape.width):
                         finalImage[i][j] += searchTerm.imageData[i][j]
@@ -129,10 +134,6 @@ def main():
             except IOError, ioError:
 
                 print "**** Encountered IOError ****\n" + str(ioError)
-
-            except urllib2.HTTPError, httpError:
-
-                print "**** Encountered HTTPError ****\n" + str(httpError)
 
             except RuntimeError, runtimeError:
 
@@ -147,23 +148,15 @@ def main():
         io.imshow(finalImage)
         io.show()
 
-
-
-
-def generateErrorMessage(_errorMessageText):
-    return "Error: " + str(_errorMessageText)
-
-
 '''
 
 
 Input handling functions
 
 
-
 '''
 
-def parseInputIntoSearchTerms(_inputString):
+def generateSearchTerms(_inputString):
 
     searchTerms = []
 
@@ -183,7 +176,6 @@ def parseInputIntoSearchTerms(_inputString):
             searchTerms.append(term)
 
     return searchTerms
-
 
 def tokenizeText(_inputText):
     _inputText = _inputText.translate(None, ',./<>?\'":;[{}]\\|+=-_)(*&^%$#@!~`') #Perhaps find a better way to include all non-alphabetical characters.
@@ -231,11 +223,14 @@ def handleSearchTerm(_searchTerm):
     print "\n"
 
 def generateFloatImageArray(_arrayDimensions):
-    imageArray = numpy.ndarray( shape = _arrayDimensions,
-                                dtype = float)
+    imageArray = numpy.ndarray( shape=_arrayDimensions,
+                                dtype=float )
     imageArray.fill(0.0)
     return imageArray
 
+'''
+I'm going to be using this function a lot. It takes an array of image data and combines them all.
+'''
 def generateImageFromDataSet(_imageDataSet, _imageShape):
 
     print "Specified Size: " + str(_imageShape.asTuple())
@@ -314,4 +309,3 @@ def getImageURLS(_jsonReponse):
 
 if __name__ == '__main__':
     main()
-
