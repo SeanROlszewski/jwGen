@@ -34,7 +34,7 @@ class App(Frame):
         self.searchEntry.bind("<Return>", self.generateFromKeyboardEvent)
         self.searchEntry.grid(row=0, padx=frameWidth/10, pady=10)
 
-        self.button = Button(master, text="Generate", command=self.generateFromMouseEvent)
+        self.button = Button(master, text="art", command=self.generateFromMouseEvent)
         self.button.grid(row=1, padx=frameWidth/10, pady=25)
 
 
@@ -43,7 +43,7 @@ if __name__ == '__main__':
     rootTk = Tk()
     rootTk.wm_attributes('-topmost', 1)
     app = App(rootTk)
-    app.master.title("jwGen Version 0.1")
+    app.master.title("jwGen")
     app.master.maxsize(MAX_HEIGHT, MAX_WIDTH)
 
     rootTk.mainloop()
