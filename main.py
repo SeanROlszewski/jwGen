@@ -1,21 +1,12 @@
 from jwGen import *
 from Tkinter import *
-from multiprocessing import Process
-import pdb
 
 MAX_HEIGHT = 250
 MAX_WIDTH = 250
 
-class App(Frame):
+class JwGenApp(Frame):
 
     searchString = None
-
-    def generateFromKeyboardEvent(self, event):
-        jwGen(self.searchString.get())
-
-
-    def generateFromMouseEvent(self):
-        jwGen(self.searchString.get())
 
 
     def __init__(self, master):
@@ -38,12 +29,25 @@ class App(Frame):
         self.button.grid(row=1, padx=frameWidth/10, pady=25)
 
 
+    def generateFromKeyboardEvent(self, event):
+        self.runJwGen(self.searchString.get())
+
+    def generateFromMouseEvent(self):
+        self.runJwGen(self.searchString.get())
+
+    def runJwGen(self, string):
+        jwGen(self.searchString.get())
+
+
+
 if __name__ == '__main__':
 
     rootTk = Tk()
     rootTk.wm_attributes('-topmost', 1)
-    app = App(rootTk)
-    app.master.title("jwGen")
-    app.master.maxsize(MAX_HEIGHT, MAX_WIDTH)
+    rootTk.resizable(0,0)
+
+    jwGenApp = JwGenApp(rootTk)
+    jwGenApp.master.title("jwGen")
+    jwGenApp.master.maxsize(MAX_HEIGHT, MAX_WIDTH)
 
     rootTk.mainloop()
