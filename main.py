@@ -1,94 +1,16 @@
 # See https://developers.google.com/image-search/v1/jsondevguide for google's search API
 
-import nltk
-import urllib2
-import simplejson
+
 import numpy
-# import pdb
-# import stringUtils
+from classes import Term
+from internetUtils import *
+from stringUtils import *
 
 from skimage import io, color, feature, transform
 import skimage
 
-# partsOfSpeech = {'CC': 0.3, 'CD': 0.1, 'VB': 0.4, 'NN': 0.2}
-partsOfSpeech = {'CC': 0,
-                 'CD': 0,
-                 'DT': 0,
-                 'EX': 0,
-                 'FW': 0,
-                 'IN': 0,
-                 'JJ': 0,
-                 'JJR': 0,
-                 'JJS': 0,
-                 'LS': 0,
-                 'MD': 0,
-                 'NN': 0,
-                 'NNS': 0,
-                 'NNP': 0,
-                 'NNPS': 0,
-                 'PDT': 0,
-                 'POS': 0,
-                 'PRP': 0,
-                 'PRP$': 0,
-                 'RB': 0,
-                 'RBR': 0,
-                 'RBS': 0,
-                 'RP': 0,
-                 'SYM': 0,
-                 'TO': 0,
-                 'UH': 0,
-                 'VB': 0,
-                 'VBD': 0,
-                 'VBG': 0,
-                 'VBN': 0,
-                 'VBP': 0,
-                 'VBZ': 0,
-                 'WDT': 0,
-                 'WP': 0,
-                 'WP$': 0,
-                 'WRB': 0}
 
-class Term:
-    text = ""
-    partOfSpeech = ""
-    weight = 0.0
-    urls = []
-    imageData = None
-
-    def __init__(self, _text="", _partOfSpeech="", _weight=0.0, _imageData=None):
-
-        self.text = _text
-        self.partOfSpeech = _partOfSpeech
-        self.weight = _weight
-        self.urls = []
-        self.imageData = _imageData
-
-    def addUrl(self, _url):
-        self.urls.append(_url)
-
-    def addUrls(self, urls):
-        self.urls = urls
-
-    def addImageData(self, _imageData):
-
-        if (_imageData != None):
-
-            print "Adding image data to Term object"
-            self.imageData = _imageData
-
-
-class Shape:
-    width = 0
-    height = 0
-    n = 0
-
-    def __init__(self, _width=0, _height=0, _n=0):
-        self.width = _width
-        self.height = _height
-        self.n = _n
-
-    def asTuple(self):
-        return (self.width, self.height, self.n)
+BRIGHTNESS_SETTING = 0.5
 
 '''
 
@@ -100,106 +22,65 @@ main()
 
 def main():
 
-    searchTerms = generateSearchTerms('google platypus donald america')
+    searchTerms = filterInputStringIntoSearchTerms('google platypus donald america') # the string here would be provided from a UI element.
 
     if len(searchTerms) == 0:
 
-        print "Unable to generate image.\n" + "Error: The filter used to remove words from the sentence for the query is too restrictive - no words are left after the filter!"
+        handleNoSearchTerms()
 
     else:
 
-        print "Looking up images for search terms: " + str(map(lambda x: x.text, searchTerms))
-
-        imageShape = Shape(1000, 1000, 3)
-        finalImage = generateFloatImageArray(imageShape.asTuple())
-
-        # Do a search on Google for each of our search terms, and get the first four images.
-        for searchTerm in searchTerms:
-
-            try:
-
-                handleSearchTerm(searchTerm)
-
-                # pdb.set_trace()
-
-                print "Adding image data to final image"
-                for j in range(imageShape.height):
-                    for i in range(imageShape.width):
-                        finalImage[i][j] += searchTerm.imageData[i][j]
-
-            except TypeError, typeError:
-
-                print "**** Type Error ****\n" + str(typeError)
-
-            except IOError, ioError:
-
-                print "**** Encountered IOError ****\n" + str(ioError)
-
-            except RuntimeError, runtimeError:
-
-                print "**** Runtime Error ****\n" + str(runtimeError)
-
-        print "Averaging image data"
-        for j in range(imageShape.height):
-            for i in range(imageShape.width):
-                finalImage[i][j] /= len(searchTerms)
-
-
-        io.imshow(finalImage)
-        io.show()
-
-'''
-
-
-Input handling functions
+        handleSearchTerms(searchTerms)
 
 
 '''
 
-def generateSearchTerms(_inputString):
-
-    searchTerms = []
-
-    tokenizedText = tokenizeText(_inputString)
-    taggedText = nltk.pos_tag(tokenizedText)
-
-    # Create a Term object for every search term we'll be looking up.
-    for token in taggedText:
-        termPartOfSpeech = token[1]
-
-        # Filter out terms that aren't a part of speech we want to use.
-        if termPartOfSpeech in partsOfSpeech.keys():
-
-            termText = token[0]
-            termWeight = parsePartOfSpeechToWeight(termPartOfSpeech)
-            term = Term(termText, termPartOfSpeech, termWeight)
-            searchTerms.append(term)
-
-    return searchTerms
-
-def tokenizeText(_inputText):
-    _inputText = _inputText.translate(None, ',./<>?\'":;[{}]\\|+=-_)(*&^%$#@!~`') #Perhaps find a better way to include all non-alphabetical characters.
-    _inputText = _inputText.split()
-    return _inputText
-
-
-
-def parsePartOfSpeechToWeight(_partOfspeech):
-    weight = partsOfSpeech[_partOfspeech]
-    return weight
+Event Handling
 
 
 '''
 
+def handleNoSearchTerms():
+    print "Unable to generate image.\n" + "Error: The filter used to remove words from the sentence for the query is too restrictive - no words are left after the filter!"
 
-Image Generation Functions
+def handleSearchTerms(_searchTerms):
+
+    imageShape = (1000, 1000, 3)
+    finalImage = generateFloatArray(imageShape)
+
+    # Do a search on Google for each of our search terms, and get the first four images.
+
+    for searchTerm in _searchTerms:
+
+        try:
+
+            handleSearchTerm(searchTerm)
+
+            print "Adding image data to final image"
+            for j in range(imageShape[0]):
+                for i in range(imageShape[1]):
+                    finalImage[i][j] += searchTerm.imageData[i][j]
+
+        except TypeError, typeError:
+
+            print "\n\t**** Type Error ****\n\t" + str(typeError) + "\n"
+
+        except IOError, ioError:
+
+            print "\n\t**** Encountered IOError ****\n\t" + str(ioError) + "\n"
+
+        except RuntimeError, runtimeError:
+
+            print "\n\t**** Runtime Error ****\n\t" + str(runtimeError) + "\n"
+
+    print "Averaging image data"
+    for j in range(imageShape[0]):
+        for i in range(imageShape[1]):
+            finalImage[i][j] /= len(_searchTerms)
 
 
-'''
-
-def toGrayScale(_imageData):
-
-    return color.rgb2gray(_imageData)
+    io.imshow(finalImage)
+    io.show()
 
 def handleSearchTerm(_searchTerm):
 
@@ -213,8 +94,8 @@ def handleSearchTerm(_searchTerm):
     print "Working with term '" + _searchTerm.text + "'"
     print "-----------------"
 
-    currentImageDataSet = io.ImageCollection(imageUrls, conserve_memory=True, loadfunc=toGrayScale)
-    finalImage = generateImageFromDataSet(currentImageDataSet, Shape(1000, 1000, 3))
+    currentImageDataSet = io.ImageCollection(imageUrls, conserve_memory=True, loadfunc=convertToGrayScale)
+    finalImage = generateImageFromImageSetWithShape(currentImageDataSet, (1000, 1000, 3))
     _searchTerm.addImageData(finalImage)
 
     # io.imshow(finalImage)
@@ -222,89 +103,66 @@ def handleSearchTerm(_searchTerm):
 
     print "\n"
 
-def generateFloatImageArray(_arrayDimensions):
-    imageArray = numpy.ndarray( shape=_arrayDimensions,
-                                dtype=float )
-    imageArray.fill(0.0)
-    return imageArray
+
+'''
+
+
+Image Generation Functions
+
+
+'''
+
+def convertToGrayScale(_imageData):
+    return color.rgb2gray(_imageData)
+
+def convertToRGB(_image):
+    return color.gray2rgb(_image)
+
+def resizeImage(_data, _destinationShape):
+    return transform.resize(_data, _destinationShape, order=1, mode='constant', cval=0, clip=True, preserve_range=False)
+
 
 '''
 I'm going to be using this function a lot. It takes an array of image data and combines them all.
 '''
-def generateImageFromDataSet(_imageDataSet, _imageShape):
 
-    print "Specified Size: " + str(_imageShape.asTuple())
+def generateImageFromImageSetWithShape(_sourceImageSet, _imageSize):
+
+    print "Specified Size: " + str(_imageSize)
 
     # Create a 2d array to store the data in.
-    finalImage = generateFloatImageArray(_imageShape.asTuple())
+    finalImage = generateFloatArray(_imageSize)
 
-    for imageData in _imageDataSet:
+    for sourceImageData in _sourceImageSet:
 
-        workingData = []
+        print "Resizing Source Image"
+        workingData = resizeImage(sourceImageData, _imageSize)
 
-        imageDataDimensions = _imageShape.asTuple()
-        print "Resizing retrieved image from " + str(imageData.shape) + " to size " + str(imageDataDimensions)
-        workingData = transform.resize(imageData, imageDataDimensions, order=1, mode='constant', cval=0, clip=True, preserve_range=False)
-        # workingData =
+        print "Adding image's data to return buffer and applying brightness setting"
+        for j in range(_imageSize[0]):
+            for i in range(_imageSize[1]):
+                finalImage[i][j] += (workingData[i][j] * BRIGHTNESS_SETTING)
 
-        print "Summing image data"
-        for j in range(_imageShape.height):
-            for i in range(_imageShape.width):
-                finalImage[i][j] += (workingData[i][j] * 0.5)
+    print "Averaging generated image's data"
+    for j in range(_imageSize[0]):
+        for i in range(_imageSize[1]):
+            finalImage[i][j] /= len(_sourceImageSet)
 
-    print "Averaging image data"
-    for j in range(_imageShape.height):
-        for i in range(_imageShape.width):
-            finalImage[i][j] /= len(_imageDataSet)
+    print "Converting image from grayscale to rgb"
+    finalImage = convertToRGB(finalImage)
 
     print "Generated Image's size: " + str(finalImage.shape)
-
-
-    finalImage = color.gray2rgb(finalImage)
-
     return finalImage
 
 
-'''
+
+def generateFloatArray(_arrayDimensions):
+    floatArray = numpy.ndarray( shape=_arrayDimensions,
+                                dtype=float )
+    floatArray.fill(0.0)
+    return floatArray
 
 
-Internet/URL/IP Functions
-
-
-'''
-
-def getImageUrlForSearchQuery(_searchTerm):
-
-    userIp = getPublicIp()
-    url = ('https://ajax.googleapis.com/ajax/services/search/images?' + 'v=1.0&q=' + _searchTerm.text + '&userip=' + userIp + '&as_filetype=jpg&imgsz=xxlarge')
-
-    return url
-
-def getPublicIp():
-
-    results = makeRequest('http://httpbin.org/ip')
-
-    return results['origin']
-
-# Returns a JSON payload of the request as a string.
-def makeRequest(_url, _referer = 'http://www.whiteroom.audio'):
-
-    request = urllib2.Request(_url, None, {'Referer': _referer})
-    remoteResponse = urllib2.urlopen(request)
-
-    return simplejson.load(remoteResponse)
-
-def getImageURLS(_jsonReponse):
-
-    imageUrls = []
-    responseData = _jsonReponse['responseData']
-    imageResults = responseData['results']
-
-    for i in range(len(imageResults)):
-        currentImageResult = imageResults[i]
-        imageUrls.append(currentImageResult['url'])
-
-    return imageUrls
 
 
 if __name__ == '__main__':
