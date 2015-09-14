@@ -13,3 +13,18 @@ The following are examples of program running. None of the photos have been modi
 
 ###Acid is cool man###
 ![Acid is cool man](http://i.imgur.com/mGQkhqZ.png?1)
+
+###another one bites the dust on tuesday with a red cape and dog###
+![another one bites the dust on tuesday with a red cape and dog](http://i.imgur.com/0VmaYX5.png?2)
+
+###happiness###
+![happiness](http://i.imgur.com/Rnahf5m.png?1)
+
+###jeremy shot a bear while breakdancing with his sister Bruce and eating lots of white snow between the trees of life###
+![jeremy shot a bear while breakdancing with his sister Bruce and eating lots of white snow between the trees of life](http://i.imgur.com/5g5TvNK.png?2)
+
+###fdsa###
+![fdsa](http://i.imgur.com/ZsyiRuM.png?1)
+
+###Quick###
+![Quick](http://i.imgur.com/6W0wkGQ.png?1)
