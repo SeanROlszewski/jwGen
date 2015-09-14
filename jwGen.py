@@ -55,7 +55,7 @@ class jwGen:
                 print "Adding image data to final image"
                 for j in range(imageShape[0]):
                     for i in range(imageShape[1]):
-                        finalImage[i][j] += searchTerm.imageData[i][j]
+                        finalImage[i][j] += searchTerm.imageData[i][j] # / len(_searchTerms)
 
             except TypeError, typeError:
 
