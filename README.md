@@ -30,7 +30,7 @@ The following are examples of program running. None of the photos have been modi
 ![Quick](http://i.imgur.com/6W0wkGQ.png?1)
 
 ###Sight###
-![Sight](http://imgur.com/zeD5T7R)
+![Sight](http://i.imgur.com/zeD5T7R.jpg?1)
 
 ###Sound###
 ![Sound](http://i.imgur.com/ui6stla.png?2)
