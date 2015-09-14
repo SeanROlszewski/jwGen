@@ -11,5 +11,5 @@ This project stems from a collaboration with a Boston-based artist.
 
 The following are examples of program running. None of the photos have been modified outside of their initial generation.
 
-#Acid is cool man#
+###Acid is cool man###
 ![Acid is cool man](http://i.imgur.com/mGQkhqZ.png?1)
